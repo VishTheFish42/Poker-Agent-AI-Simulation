@@ -104,15 +104,18 @@ class Deck:
         def deal_river(self):
             self.river = Deck.deal_card()
 
-        def print_community(self):
-            print('Community Cards:')
+        def __str__(self):
+            final_str = 'Community Cards:\n'
+            
             if (self.flop1 != None):
-                print('Flop:    ' + str(self.flop1) + '   ' + str(self.flop2) + '   ' + str(self.flop3))
+                final_str += 'Flop:    ' + str(self.flop1) + '   ' + str(self.flop2) + '   ' + str(self.flop3) + '\n'
             if (self.turn != None):
-                print('Turn:    ' + str(self.turn))
+                final_str += 'Turn:    ' + str(self.turn) + '\n'
             if (self.river != None):
-                print('River:   ' + str(self.river))
-            print()
+                final_str += 'River:   ' + str(self.river) + '\n'
+            final_str += '\n'
+
+            return final_str
 
 class Player:
     def __init__(self, order, name):
@@ -124,35 +127,103 @@ class Player:
         self.position = ''
         self.hand = None
         
-    def print_player(self):
-        print(self.name + ':' + (' ' * (12 - len(self.name))) + str(self.card1) + '   ' + str(self.card2))
-
     def deal_cards_to_player(self):
         self.card1 = Deck.deal_card()
         self.card2 = Deck.deal_card()
-'''
+
+    def print_player_cards(self):
+        print(self.name + ':' + (' ' * (12 - len(self.name))) + str(self.card1) + '   ' + str(self.card2))
+
+    def evaluate_hand(self):
+        self.hand = Hand(self.card1, self.card2)
+
+    def __str__(self):
+        return self.name + ':' + (' ' * (17 - len(self.name))) + str(self.hand)
+
 class Hand:
-    def __init__(self, player_card1, player_card2, flop1, flop2, flop3, turn, river):
-        self.c1 = player_card1
-        self.c2 = player_card2
-        self.c3 = flop1
-        self.c4 = flop2
-        self.c5 = flop3
-        self.c6 = turn
-        self.c7 = river
-        self.card1 = None
-        self.card2 = None
-        self.card3 = None
-        self.card4 = None
-        self.card5 = None
-'''
+    def __init__(self, player_card1, player_card2):
+        global community
+        self.all_cards = [player_card1, player_card2, community.flop1, community.flop2, community.flop3, community.turn, community.river]
+        self.hand_cards = []
+        self.name = ''
+        self.determine_hand()
+
+    def sort_cards(card_list, ace_low):
+        value_ranking = {'2'  :  1,
+                         '3'  :  2,
+                         '4'  :  3,
+                         '5'  :  4,
+                         '6'  :  5,
+                         '7'  :  6,
+                         '8'  :  7,
+                         '9'  :  8,
+                         '10' :  9,
+                         'J'  : 10,
+                         'Q'  : 11,
+                         'K'  : 12,
+                         'A'  : 13}
+        
+        ace_low_value_ranking = {'A'  :  1,
+                                 '2'  :  2,
+                                 '3'  :  3,
+                                 '4'  :  4,
+                                 '5'  :  5,
+                                 '6'  :  6,
+                                 '7'  :  7,
+                                 '8'  :  8,
+                                 '9'  :  9,
+                                 '10' : 10,
+                                 'J'  : 11,
+                                 'Q'  : 12,
+                                 'K'  : 13}
+        
+        suite_ranking = {'D' : 1,
+                         'C' : 2,
+                         'H' : 3,
+                         'S' : 4}
+        
+        for i in range(1, len(card_list)):
+            key = card_list[i]
+            j = i - 1
+
+            if (ace_low):
+                while (j >= 0 and ace_low_value_ranking[key.value] > ace_low_value_ranking[card_list[j].value]):
+                    card_list[j + 1] = card_list[j]
+                    j -= 1
+            
+            else:
+                while (j >= 0 and value_ranking[key.value] > value_ranking[card_list[j].value]):
+                    card_list[j + 1] = card_list[j]
+                    j -= 1
+                
+            if (key.value == card_list[j].value):
+                if (suite_ranking[key.suite] > suite_ranking[card_list[j].suite]):
+                    temp = key
+                    key = card_list[j]
+                    card_list[j] = temp
+            
+            card_list[j + 1] = key
+
+        return card_list
+    
+    def get_high_card(self):
+        self.hand_cards = Hand.sort_cards(self.all_cards, False)[:5]
+        self.name = 'High Card'
+
+    def determine_hand(self):
+        if (self.name == ''):
+            self.get_high_card()
+
+    def __str__(self):
+        return self.name + (' ' * (17 - len(self.name))) + str(self.hand_cards[0]) + '   ' + str(self.hand_cards[1]) + '   ' + str(self.hand_cards[2]) + '   ' + str(self.hand_cards[3]) + '   ' + str(self.hand_cards[4])
 
 def test():
     global deck
     global dealt_cards
     global community
-    deck = Deck().deck
 
+    deck = Deck().deck
+    
     player1 = Player(0, 'Vishwa')
     player2 = Player(1, 'Vishnu')
     player3 = Player(2, 'Prakash')
@@ -163,18 +234,28 @@ def test():
     player3.deal_cards_to_player()
     player4.deal_cards_to_player()
 
-    player1.print_player()
-    player2.print_player()
-    player3.print_player()
-    player4.print_player()
+    player1.print_player_cards()
+    player2.print_player_cards()
+    player3.print_player_cards()
+    player4.print_player_cards()
     print()
     
     community = Deck.Community()
     community.deal_flop()
-    community.print_community()
     community.deal_turn()
-    community.print_community()
     community.deal_river()
-    community.print_community()
+    print(community)
+
+    player1.evaluate_hand()
+    player2.evaluate_hand()
+    player3.evaluate_hand()
+    player4.evaluate_hand()
+
+    print(player1)
+    print(player2)
+    print(player3)
+    print(player4)
+    print()
+
 
 test()
